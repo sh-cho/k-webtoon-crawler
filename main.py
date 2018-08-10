@@ -57,11 +57,11 @@ if __name__ == "__main__":
         soup = soup.find_all('td', class_='title')
         last_index = int(re.findall(r'\d+', soup[0].find('a')['href'])[1])
 
-        webtoon_index = 1
+        episode_index = 1
         while True:
-            if webtoon_index > last_index:    # 마지막화 체크
+            if episode_index > last_index:    # 마지막화 체크
                 break
-            detail_url = NAVER_WEBTOON["DETAIL_URL"] % (item['titleId'], webtoon_index)
+            detail_url = NAVER_WEBTOON["DETAIL_URL"] % (item['titleId'], episode_index)
             # download
             soup = BeautifulSoup(requests.get(detail_url).text, 'lxml')
             soup = soup.find('div', class_='wt_viewer')\
@@ -70,9 +70,9 @@ if __name__ == "__main__":
             for img in soup:
                 # TODO: 확장자 구하기
                 print(img['src'])
-                urllib.request.urlretrieve(img['src'], "%s_%03d_%03d.jpg" % (item['title'], webtoon_index, image_index))
+                urllib.request.urlretrieve(img['src'], "%s_%03d_%03d.jpg" % (item['title'], episode_index, image_index))
                 image_index += 1
-            webtoon_index += 1
+            episode_index += 1
             exit(315)
         # TODO: config에 from, to 쓰기
         exit(-99)
