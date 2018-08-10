@@ -11,4 +11,3 @@ Supported Site:
    * requests
    * beautifulsoup4
    * lxml
-   * firebase_admin
