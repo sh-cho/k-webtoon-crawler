@@ -1,39 +1,34 @@
+import json
+import re
 import requests
+import urllib.request
 from bs4 import BeautifulSoup, Tag
-import firebase_admin
-from firebase_admin import credentials, db
 
-NAVER_WEBTOON_FINISH_URL = "http://comic.naver.com/webtoon/finish.nhn"
-FIREBASE_ADMIN_ACCOUNT_KEY_PATH = "webtoon-crawler-firebase-adminsdk-zrgs2-dc46d4b66c.json"
-FIREBASE_DATABASE_URL = "https://webtoon-crawler.firebaseio.com/"
+NAVER_WEBTOON = {
+    "FINISH_URL": "https://comic.naver.com/webtoon/finish.nhn",
+    "LIST_URL": "https://comic.naver.com/webtoon/list.nhn?titleId=%s",
+    "DETAIL_URL": "https://comic.naver.com/webtoon/detail.nhn?titleId=%s&no=%s"
+}
 
+###############################################################################################
 if __name__ == "__main__":
-    cred = credentials.Certificate(FIREBASE_ADMIN_ACCOUNT_KEY_PATH)
-    firebase_admin.initialize_app(cred, {
-        'databaseURL': FIREBASE_DATABASE_URL
-    })
-    # print(firebase_admin.db.reference().get())
-    # print(type(firebase_admin.db.reference().get()))
-    naver = firebase_admin.db.reference("/webtoon-list").child("naver")
-    # gui = firebase_admin.db.reference("/webtoon-list/naver/여중생A")
-    # gui.update({'end-no':2})
+    # 설정
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+    except IOError:
+        config = {}
 
-    for key, value in naver.get().items():
-        webtoon = firebase_admin.db.reference("/webtoon-list/naver").child(key)
-        print(webtoon.get())
-    # print(naver)
-    exit(-1)
+    # urllib header
+    opener = urllib.request.build_opener()
+    opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+    urllib.request.install_opener(opener)
 
+    # 완결웹툰
+    finish_webtoon_url = NAVER_WEBTOON["FINISH_URL"]
+    soup = BeautifulSoup(requests.get(finish_webtoon_url).text, 'lxml')
 
-    url = NAVER_WEBTOON_FINISH_URL
-    source_code = requests.get(url)
-    plain_text = source_code.text
-    soup = BeautifulSoup(plain_text, 'lxml')
-    # print(soup.prettify())
-    # print(soup)
-
-    stored_comic = []
-    test = 1
+    download_queue = []
     soup = soup.find('body') \
         .find('div', {'id': 'wrap'}, recursive=False) \
         .find('div', {'id': 'container'}, recursive=False) \
@@ -41,20 +36,47 @@ if __name__ == "__main__":
         .find('div', {'class': 'list_area'}, recursive=False) \
         .find('ul', {'class': 'img_list'}, recursive=False)
 
-    # test = soup.find_all(is_stored)
-    lilist = soup.find_all('li')
-    for tmp in lilist:
-        em = tmp.find('em', class_="ico_store")
-        if em is not None:
-            print(tmp.find('a')['title'])
+    regex = re.compile(r'\d+')
+    webtoon_list = soup.find_all('li')
+    for webtoon in webtoon_list:
+        em = webtoon.find('em', class_='ico_store')
+        if em is None:
+            description = webtoon.find('a')
+            webtoon_info = {
+                'title': description['title'],
+                'titleId': regex.search(description['href']).group()
+            }
+            download_queue.append(webtoon_info)
 
-    exit(-1)
-    for child in soup:
-        print("===\nchild: ", child)
-        print(type(child))
+    # TODO: 다운로드 내역과 비교해서 download queue 정리
 
-    # print(soup)
-    # print("====")
-    print(test)
-    # print(type(test))
-    pass
+    for item in download_queue:
+        # 마지막화 인덱스 구하기
+        list_url = NAVER_WEBTOON["LIST_URL"] % item["titleId"]
+        soup = BeautifulSoup(requests.get(list_url).text, 'lxml')
+        soup = soup.find_all('td', class_='title')
+        last_index = int(re.findall(r'\d+', soup[0].find('a')['href'])[1])
+
+        webtoon_index = 1
+        while True:
+            if webtoon_index > last_index:    # 마지막화 체크
+                break
+            detail_url = NAVER_WEBTOON["DETAIL_URL"] % (item['titleId'], webtoon_index)
+            # download
+            soup = BeautifulSoup(requests.get(detail_url).text, 'lxml')
+            soup = soup.find('div', class_='wt_viewer')\
+                .find_all('img', {}, recursive=False)
+            image_index = 1
+            for img in soup:
+                # TODO: 확장자 구하기
+                print(img['src'])
+                urllib.request.urlretrieve(img['src'], "%s_%03d_%03d.jpg" % (item['title'], webtoon_index, image_index))
+                image_index += 1
+            webtoon_index += 1
+            exit(315)
+        # TODO: config에 from, to 쓰기
+        exit(-99)
+
+    with open('config.json', 'w+') as f:
+        json.dump(config, f)
+
