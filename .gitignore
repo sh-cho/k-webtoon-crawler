@@ -60,4 +60,7 @@ fabric.properties
 .idea/httpRequests
 
 venv/
-/.idea/
+/config.json
+/.idea/misc.xml
+/.idea/webtoon-crawler.iml
+/.idea/workspace.xml

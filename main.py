@@ -15,13 +15,12 @@ NAVER_WEBTOON = {
     "DETAIL_URL": "https://comic.naver.com/webtoon/detail.nhn?titleId=%s&no=%s"
 }
 
-t = time.process_time()
-
 ###############################################################################################
 if __name__ == "__main__":
-    # TODO: 설정
+    t = time.process_time()
+
     try:
-        with open('config.json', 'r') as f:
+        with open('config.json', 'r', encoding='UTF8') as f:
             config = json.load(f)
     except IOError:
         config = {}
@@ -57,10 +56,10 @@ if __name__ == "__main__":
             }
             download_queue.append(webtoon_info)
 
-    # TODO: 다운로드 내역과 비교해서 download queue 정리
 
     # 한 작품씩 다운로드 시작
     for item in download_queue:
+        # 작품 별 폴더 만들기
         title_dir = (download_dir / item['title'])
         title_dir.mkdir(exist_ok=True)
 
@@ -70,13 +69,23 @@ if __name__ == "__main__":
         latest = soup.find('td', class_='title')
         last_index = int(regex.findall(latest.find('a')['href'])[1])
 
-        # 화 별 다운로드
-        episode_index = 1
+
+        # 이미 전부 다 다운받은거면 skip
+        # 받고 나서 화 추가된 거 episode_index 설정
+        if item['titleId'] in config['comics'] and config['comics'][item['titleId']]['last_index'] >= last_index:
+            if config['comics'][item['titleId']]['last_index'] >= last_index:
+                continue
+            else:
+                episode_index = config['comics'][item['titleId']]['last_index'] + 1
+        else:
+            episode_index = 1
+
         while True:
             if episode_index > last_index:    # 마지막화까지 받은 경우 다음 만화로 넘어가기
                 break
 
             # TODO: 1화부터 시작하지 않고 넘어갈 경우 체크
+            # TODO: 로컬에 이미 받은 파일 있는 경우(&& size!=0인 경우) 스킵
 
             detail_url = NAVER_WEBTOON["DETAIL_URL"] % (item['titleId'], episode_index)
 
@@ -87,7 +96,6 @@ if __name__ == "__main__":
             # download
             soup = BeautifulSoup(requests.get(detail_url).text, 'lxml')
             soup = soup.select('.wt_viewer img')
-            # image_index = 1
 
             for img in soup:
                 img_data = requests.get(img['src'], headers=request_headers).content
@@ -108,18 +116,21 @@ if __name__ == "__main__":
                 output_height += height
             canvas.save(str(title_dir / ("%s_%04d화.png" % (item['title'], episode_index))))
 
+            print("[%s] %04d / %04d" % (item['title'], episode_index, last_index))
             episode_index += 1
             # exit(315)
 
-        # TODO: config에 from, to 쓰기
+        # config 업데이트
+        if item['titleId'] not in config['comics']:
+            config['comics'][item['titleId']] = {'title': item['title']}
+        config['comics'][item['titleId']]['last_index'] = last_index
 
-        print("%s 다운로드 완료\n" % item['title'])
-        # exit(-99)
+        print("--- [%s] download completed ---" % item['title'])
         break
 
-    with open('config.json', 'w+') as f:
-        json.dump(config, f)
+    with open('config.json', 'w+', encoding='UTF8') as f:
+        json.dump(config, f, ensure_ascii=False)
 
     # elapsed time check
     t = time.process_time() - t
-    print(t)
+    print("%04d second(s) elapsed" % t)
