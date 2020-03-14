@@ -60,3 +60,4 @@ fabric.properties
 .idea/httpRequests
 
 venv/
+/.idea/
