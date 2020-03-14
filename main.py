@@ -3,10 +3,9 @@ import json
 import time
 import re
 import requests
-import PIL.Image
-from pathlib import Path
 
-from PIL.Image import Image
+from pathlib import Path
+import PIL.Image
 from bs4 import BeautifulSoup
 
 NAVER_WEBTOON = {
@@ -14,6 +13,14 @@ NAVER_WEBTOON = {
     "LIST_URL": "https://comic.naver.com/webtoon/list.nhn?titleId=%s",
     "DETAIL_URL": "https://comic.naver.com/webtoon/detail.nhn?titleId=%s&no=%s"
 }
+
+
+def update_last_index(_config, _item, _last_index):
+    if (_item['titleId']) not in _config['comics']:
+        _config['comics'][_item['titleId']] = {'title': _item['title']}
+    _config['comics'][_item['titleId']]['last_index'] = _last_index
+    return
+
 
 ###############################################################################################
 if __name__ == "__main__":
@@ -56,80 +63,79 @@ if __name__ == "__main__":
             }
             download_queue.append(webtoon_info)
 
+    try:
+        # 한 작품씩 다운로드 시작
+        for item in download_queue:
+            # 작품 별 폴더 만들기
+            title_dir = (download_dir / item['title'])
+            title_dir.mkdir(exist_ok=True)
 
-    # 한 작품씩 다운로드 시작
-    for item in download_queue:
-        # 작품 별 폴더 만들기
-        title_dir = (download_dir / item['title'])
-        title_dir.mkdir(exist_ok=True)
+            # 마지막화 인덱스 구하기
+            list_url = NAVER_WEBTOON["LIST_URL"] % item["titleId"]
+            soup = BeautifulSoup(requests.get(list_url).text, 'lxml')
+            latest = soup.find('td', class_='title')
+            last_index = int(regex.findall(latest.find_next('a')['href'])[1])
 
-        # 마지막화 인덱스 구하기
-        list_url = NAVER_WEBTOON["LIST_URL"] % item["titleId"]
-        soup = BeautifulSoup(requests.get(list_url).text, 'lxml')
-        latest = soup.find('td', class_='title')
-        last_index = int(regex.findall(latest.find('a')['href'])[1])
-
-
-        # 이미 전부 다 다운받은거면 skip
-        # 받고 나서 화 추가된 거 episode_index 설정
-        if item['titleId'] in config['comics'] and config['comics'][item['titleId']]['last_index'] >= last_index:
-            if config['comics'][item['titleId']]['last_index'] >= last_index:
-                continue
+            # 이미 전부 다 다운받은거면 skip
+            # 받고 나서 화 추가된 거 episode_index 설정
+            if item['titleId'] in config['comics']:
+                if config['comics'][item['titleId']]['last_index'] >= last_index:
+                    continue
+                else:
+                    episode_index = config['comics'][item['titleId']]['last_index'] + 1
             else:
-                episode_index = config['comics'][item['titleId']]['last_index'] + 1
-        else:
-            episode_index = 1
+                episode_index = 1
 
-        while True:
-            if episode_index > last_index:    # 마지막화까지 받은 경우 다음 만화로 넘어가기
-                break
+            while True:
+                if episode_index > last_index:  # 마지막화까지 받은 경우 다음 만화로 넘어가기
+                    break
 
-            # TODO: 1화부터 시작하지 않고 넘어갈 경우 체크
-            # TODO: 로컬에 이미 받은 파일 있는 경우(&& size!=0인 경우) 스킵
+                # TODO: 1화부터 시작하지 않고 넘어갈 경우 체크
+                # TODO: 로컬에 이미 받은 파일 있는 경우(&& size!=0인 경우) 스킵
 
-            detail_url = NAVER_WEBTOON["DETAIL_URL"] % (item['titleId'], episode_index)
+                detail_url = NAVER_WEBTOON["DETAIL_URL"] % (item['titleId'], episode_index)
 
-            # 이미지
-            image_list = []
-            full_width, full_height = 0, 0
+                # 이미지
+                image_list = []
+                full_width, full_height = 0, 0
 
-            # download
-            soup = BeautifulSoup(requests.get(detail_url).text, 'lxml')
-            soup = soup.select('.wt_viewer img')
+                # download
+                soup = BeautifulSoup(requests.get(detail_url).text, 'lxml')
+                soup = soup.select('.wt_viewer img')
 
-            for img in soup:
-                img_data = requests.get(img['src'], headers=request_headers).content
-                img_name = Path(img['src']).name
-                im = PIL.Image.open(io.BytesIO(img_data))
-                width, height = im.size
-                image_list.append(im)
-                full_width = max(full_width, width)
-                full_height += height
-                # image_index += 1
+                # get every image
+                for img in soup:
+                    img_data = requests.get(img['src'], headers=request_headers).content
+                    img_name = Path(img['src']).name
+                    im = PIL.Image.open(io.BytesIO(img_data))
+                    width, height = im.size
+                    image_list.append(im)
+                    full_width = max(full_width, width)
+                    full_height += height
 
-            # concat images vertically
-            canvas: Image = PIL.Image.new('RGB', (full_width, full_height), 'white')
-            output_height = 0
-            for im in image_list:
-                width, height = im.size
-                canvas.paste(im, (0, output_height))
-                output_height += height
-            canvas.save(str(title_dir / ("%s_%04d화.png" % (item['title'], episode_index))))
+                # concat images vertically
+                canvas: PIL.Image = PIL.Image.new('RGB', (full_width, full_height), 'white')
+                output_height = 0
+                for im in image_list:
+                    width, height = im.size
+                    canvas.paste(im, (0, output_height))
+                    output_height += height
+                canvas.save(str(title_dir / ("%s_%04d화.png" % (item['title'], episode_index))))
 
-            print("[%s] %04d / %04d" % (item['title'], episode_index, last_index))
-            episode_index += 1
-            # exit(315)
+                print("[%s] %04d / %04d" % (item['title'], episode_index, last_index))
+                episode_index += 1
 
-        # config 업데이트
-        if item['titleId'] not in config['comics']:
-            config['comics'][item['titleId']] = {'title': item['title']}
-        config['comics'][item['titleId']]['last_index'] = last_index
+            # config 업데이트
+            update_last_index(config, item, last_index)
 
-        print("--- [%s] download completed ---" % item['title'])
-        break
-
-    with open('config.json', 'w+', encoding='UTF8') as f:
-        json.dump(config, f, ensure_ascii=False)
+            print("--- [%s] download completed ---" % item['title'])
+            break   # for test
+    except Exception as exc:
+        print('*** error has occurred ***')
+        print(exc)
+    finally:
+        with open('config.json', 'w+', encoding='UTF8') as f:
+            json.dump(config, f, ensure_ascii=False)
 
     # elapsed time check
     t = time.process_time() - t
