@@ -5,6 +5,7 @@ import lzstring
 import re
 import requests
 import rsa
+import shutil
 import time
 import uuid
 import unicodedata
@@ -236,6 +237,13 @@ if __name__ == "__main__":
             last_status = {"item": item, "lastIndex": last_index}
 
             print("--- [%s] download completed ---" % item['title'])
+
+            # 남은 용량 200GB 미만일 경우 종료
+            total, used, free = shutil.disk_usage("C:")
+            if free // (2**30) < 200:
+                print("--- remaining capacity is less than 200GB ---")
+                break
+
             #break   # test
     except Exception as exc:
         print('*** error has occurred ***')
