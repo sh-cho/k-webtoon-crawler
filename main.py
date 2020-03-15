@@ -28,6 +28,11 @@ def update_last_index(_config, _item, _last_index):
     return
 
 
+def dump_config_file(_config):
+    with open('config.json', 'w+', encoding='UTF8') as _conf_file:
+        json.dump(_config, _conf_file, ensure_ascii=False, indent=4)
+
+
 def slugify(value, allow_unicode=False):
     """
     Convert to ASCII if 'allow_unicode' is False. Convert spaces to hyphens.
@@ -74,7 +79,6 @@ if __name__ == "__main__":
     download_dir = Path('.') / 'downloads'
     download_dir.mkdir(exist_ok=True)
 
-
     # 완결웹툰
     finish_webtoon_url = NAVER_WEBTOON["FINISH_URL"]
     soup = BeautifulSoup(session.get(finish_webtoon_url).text, 'lxml')
@@ -92,7 +96,7 @@ if __name__ == "__main__":
                 'title': slugify(description['title'], allow_unicode=True),  # 파일 명 들어갈 수 없는 char 제거 (Windows / Linux)
                 'titleId': regex.search(description['href']).group()
             }
-            if webtoon_info['title'] is not description['title']:   # slugify로 제목 달라진 경우 원제목 추가
+            if webtoon_info['title'] != description['title']:   # slugify로 제목 달라진 경우 원제목 추가
                 webtoon_info['titleOriginal'] = description['title']
             download_queue.append(webtoon_info)
 
@@ -138,6 +142,7 @@ if __name__ == "__main__":
 
                 # get every image
                 for img in soup:
+                    # TODO: img_data 오류날 경우 (아무것도 없을 때) -> 다시 받기
                     img_data = session.get(img['src'], headers=request_headers).content
                     img_name = Path(img['src']).name
                     im = PIL.Image.open(io.BytesIO(img_data))
@@ -155,14 +160,17 @@ if __name__ == "__main__":
                     output_height += height
                 canvas.save(str(title_dir / ("%s_%04d화.png" % (item['title'], episode_index))), optimize=True)  # png optimize
                 print("[%s] %04d / %04d 화" % (item['title'], episode_index, last_index))
+                # config 파일 업데이트 (매 화 받을 때마다)
+                update_last_index(config, item, episode_index)
+                dump_config_file(config)
                 episode_index += 1
 
             # config 업데이트
-            update_last_index(config, item, last_index)
+            #update_last_index(config, item, last_index)
             last_status = {"item": item, "lastIndex": last_index}
 
             print("--- [%s] download completed ---" % item['title'])
-            break   # test
+            # break   # test
     except Exception as exc:
         print('*** error has occurred ***')
         print(exc)
@@ -170,10 +178,9 @@ if __name__ == "__main__":
             f.write(str(exc))
         update_last_index(config, last_status['item'], last_status['lastIndex'])
     finally:
-        with open('config.json', 'w+', encoding='UTF8') as f:
-            json.dump(config, f, ensure_ascii=False, indent=4)
+        dump_config_file(config)
 
     # elapsed time check
     t = time.process_time() - t
-    print("%04d second(session) elapsed" % t)
+    print("%04d second(s) elapsed" % t)
     # main end
