@@ -1,20 +1,25 @@
 import io
 import json
-import time
+import PIL.Image
+import lzstring
 import re
 import requests
+import rsa
+import time
+import uuid
 import unicodedata
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from pathlib import Path
-import PIL.Image
 from bs4 import BeautifulSoup
+
 
 NAVER_WEBTOON = {
     "FINISH_URL": "https://comic.naver.com/webtoon/finish.nhn",
     "LIST_URL": "https://comic.naver.com/webtoon/list.nhn?titleId=%s",
-    "DETAIL_URL": "https://comic.naver.com/webtoon/detail.nhn?titleId=%s&no=%s"
+    "DETAIL_URL": "https://comic.naver.com/webtoon/detail.nhn?titleId=%s&no=%s",
 }
+
 
 last_status = {}
 
@@ -48,6 +53,64 @@ def slugify(value, allow_unicode=False):
     return re.sub(r'[-\s]+', '-', value)
 
 
+def encrypt(key_str, uid, upw):
+    def naver_style_join(l):
+        return ''.join([chr(len(s)) + s for s in l])
+
+    sessionkey, keyname, e_str, n_str = key_str.split(',')
+    e, n = int(e_str, 16), int(n_str, 16)
+
+    message = naver_style_join([sessionkey, uid, upw]).encode()
+
+    pubkey = rsa.PublicKey(e, n)
+    encrypted = rsa.encrypt(message, pubkey)
+
+    return keyname, encrypted.hex()
+
+
+def encrypt_account(uid, upw):
+    # key_str = requests.get('http://static.nid.naver.com/enclogin/keys.nhn').content.decode("utf-8")
+    key_str = requests.get('https://nid.naver.com/login/ext/keys.nhn').content.decode("utf-8")
+    return encrypt(key_str, uid, upw)
+
+
+def naver_session(nid, npw):
+    encnm, encpw = encrypt_account(nid, npw)
+
+    s = requests.Session()
+    retries = Retry(
+        total=5,
+        backoff_factor=0.1,
+        status_forcelist=[500, 502, 503, 504]
+    )
+    s.mount('https://', HTTPAdapter(max_retries=retries))
+    request_headers = {
+        'User-agent': 'Mozilla/5.0'
+    }
+
+    # time.sleep(0.5)
+    bvsd_uuid = uuid.uuid4()
+    encData = '{"a":"%s-4","b":"1.3.4","d":[{"i":"id","b":{"a":["0,%s"]},"d":"%s","e":false,"f":false},{"i":"%s","e":true,"f":false}],"h":"1f","i":{"a":"Mozilla/5.0"}}' % (bvsd_uuid, nid, nid, npw)
+    bvsd = '{"uuid":"%s","encData":"%s"}' % (bvsd_uuid, lzstring.LZString.compressToEncodedURIComponent(encData))
+
+    resp = s.post('https://nid.naver.com/nidlogin.login', data={
+        'svctype': '0',
+        'enctp': '1',
+        'encnm': encnm,
+        'enc_url': 'http0X0.0000000000001P-10220.0000000.000000www.naver.com',
+        'url': 'www.naver.com',
+        'smart_level': '1',
+        'encpw': encpw,
+        'bvsd': bvsd
+    }, headers=request_headers)
+
+    finalize_url = re.search(r'location\.replace\("([^"]+)"\)', resp.content.decode("utf-8")).group(1)
+    s.get(finalize_url)
+
+    return s
+
+
+
 ###############################################################################################
 if __name__ == "__main__":
     t = time.process_time()
@@ -58,19 +121,22 @@ if __name__ == "__main__":
     except IOError:
         config = {"comics": {}}
 
+    try:
+        with open('naver.json', 'r') as f:
+            naver_account = json.load(f)
+    except IOError:
+        print("naver.json 파일 설정 필요")
+        exit(-1)
+
     # HTTP Req header
     request_headers = {
         'User-agent': 'Mozilla/5.0'
     }
 
     # session
-    session = requests.Session()
-    retries = Retry(
-        total=5,
-        backoff_factor=0.1,
-        status_forcelist=[500, 502, 503, 504]
-    )
-    session.mount('http://', HTTPAdapter(max_retries=retries))
+    # 네이버 로그인 (19세 이상 만화 받기 위해서)
+    # 너무 힘들었다ㅠ
+    session = naver_session(naver_account['id'], naver_account['password'])
 
     # regex 패턴 셋업
     regex = re.compile(r'\d+')
@@ -103,10 +169,6 @@ if __name__ == "__main__":
     try:
         # 한 작품씩 다운로드 시작
         for item in download_queue:
-            # 작품 별 폴더 만들기
-            title_dir = (download_dir / item['title'])
-            title_dir.mkdir(exist_ok=True)
-
             # 마지막화 인덱스 구하기
             list_url = NAVER_WEBTOON["LIST_URL"] % item["titleId"]
             soup = BeautifulSoup(session.get(list_url).text, 'lxml')
@@ -122,6 +184,10 @@ if __name__ == "__main__":
                     episode_index = config['comics'][item['titleId']]['lastIndex'] + 1
             else:
                 episode_index = 1
+
+            # 작품 별 폴더 만들기
+            title_dir = (download_dir / item['title'])
+            title_dir.mkdir(exist_ok=True)
 
             while True:
                 if episode_index > last_index:  # 마지막화까지 받은 경우 다음 만화로 넘어가기
@@ -170,7 +236,7 @@ if __name__ == "__main__":
             last_status = {"item": item, "lastIndex": last_index}
 
             print("--- [%s] download completed ---" % item['title'])
-            # break   # test
+            #break   # test
     except Exception as exc:
         print('*** error has occurred ***')
         print(exc)
