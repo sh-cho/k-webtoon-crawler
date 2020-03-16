@@ -22,6 +22,14 @@ NAVER_WEBTOON = {
 }
 
 
+# 다운받기 힘든거
+SKIP_LIST = {
+    'NAVER_WEBTOON': [
+        '714568',  # 2018 재생금지
+    ]
+}
+
+
 last_status = {}
 
 
@@ -70,7 +78,6 @@ def encrypt(key_str, uid, upw):
 
 
 def encrypt_account(uid, upw):
-    # key_str = requests.get('http://static.nid.naver.com/enclogin/keys.nhn').content.decode("utf-8")
     key_str = requests.get('https://nid.naver.com/login/ext/keys.nhn').content.decode("utf-8")
     return encrypt(key_str, uid, upw)
 
@@ -163,7 +170,9 @@ if __name__ == "__main__":
                 'title': slugify(description['title'], allow_unicode=True),  # 파일 명 들어갈 수 없는 char 제거 (Windows / Linux)
                 'titleId': regex.search(description['href']).group()
             }
-            if webtoon_info['title'] != description['title']:   # slugify로 제목 달라진 경우 원제목 추가
+            if webtoon_info['titleId'] in SKIP_LIST['NAVER_WEBTOON']:   # 다운로드 스킵
+                continue
+            elif webtoon_info['title'] != description['title']:   # slugify로 제목 달라진 경우 원제목 추가
                 webtoon_info['titleOriginal'] = description['title']
             download_queue.append(webtoon_info)
 
@@ -176,6 +185,7 @@ if __name__ == "__main__":
             latest = soup.find('td', class_='title')
             last_index = int(regex.findall(latest.find_next('a')['href'])[1])
 
+
             # 이미 전부 다 다운받은거면 skip
             # 받고 나서 화 추가된 거 episode_index 설정
             if item['titleId'] in config['comics']:
@@ -185,6 +195,8 @@ if __name__ == "__main__":
                     episode_index = config['comics'][item['titleId']]['lastIndex'] + 1
             else:
                 episode_index = 1
+
+            # print("[%s] current_index:%d last_index:%d" % (item['title'], config['comic'][item['titleId']]['lastIndex'], last_index))
 
             # 작품 별 폴더 만들기
             title_dir = (download_dir / item['title'])
@@ -196,6 +208,7 @@ if __name__ == "__main__":
 
                 # TODO: 1화부터 시작하지 않고 넘어갈 경우 체크
                 # TODO: 로컬에 이미 받은 파일 있는 경우(&& size!=0인 경우) 스킵
+                # TODO: OSError: image file is truncated (59 bytes not processed) 에러 해결
 
                 detail_url = NAVER_WEBTOON["DETAIL_URL"] % (item['titleId'], episode_index)
 
@@ -209,8 +222,12 @@ if __name__ == "__main__":
 
                 # get every image
                 for img in soup:
-                    # TODO: img_data 오류날 경우 (아무것도 없을 때) -> 다시 받기
-                    img_data = session.get(img['src'], headers=request_headers).content
+                    # img_data 오류날 경우 (아무것도 없을 때) -> 다시 받기
+                    while True:
+                        img_req = session.get(img['src'], headers=request_headers)
+                        if img_req.status_code == 200:
+                            img_data = img_req.content
+                            break
                     img_name = Path(img['src']).name
                     im = PIL.Image.open(io.BytesIO(img_data))
                     width, height = im.size
@@ -244,7 +261,7 @@ if __name__ == "__main__":
                 print("--- remaining capacity is less than 200GB ---")
                 break
 
-            #break   # test
+            # break   # test: just download single comic
     except Exception as exc:
         print('*** error has occurred ***')
         print(exc)
