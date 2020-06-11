@@ -23,9 +23,28 @@ NAVER_WEBTOON = {
 
 
 # 다운받기 힘든거
+# TODO: 몇 화만 플래시로 되어있거나 그런거 예외처리
 SKIP_LIST = {
     'NAVER_WEBTOON': [
         '714568',  # 2018 재생금지
+        '696593',  # DEY 호러채널
+        '578109',  # 러브슬립 2부
+        '243316',  # 러브슬립
+        '682222',  # 귀도
+        '682803',  # 2016 비명
+        '647948',  # 프린세스 5부
+        '658823',  # 천국의 신화
+        '655277',  # 고고고
+        '657934',  # 2015 소름
+        '490549',  # 2012 지구가 멸망한다면
+        '440447',  # wish-마녀의 시간
+        '440437',  # 투명살인
+        '440439',  # 플라스틱 걸
+        '350217',  # 2011 미스테리 단편
+        '300957',  # 까치우는 날
+        '301377',  # 뷰티플 게임
+        '92106',  # 와라편의점 the animation
+
     ]
 }
 
@@ -141,10 +160,13 @@ if __name__ == "__main__":
         'User-agent': 'Mozilla/5.0'
     }
 
+    print("설정 파일 로드 완료")
+
     # session
     # 네이버 로그인 (19세 이상 만화 받기 위해서)
     # 너무 힘들었다ㅠ
     session = naver_session(naver_account['id'], naver_account['password'])
+    print("네이버 세션 생성 완료")
 
     # regex 패턴 셋업
     regex = re.compile(r'\d+')
@@ -176,9 +198,13 @@ if __name__ == "__main__":
                 webtoon_info['titleOriginal'] = description['title']
             download_queue.append(webtoon_info)
 
+    print("download queue 생성 완료")
+
+
     try:
         # 한 작품씩 다운로드 시작
         for item in download_queue:
+            print("--- [%s] download start ---" % item['title'])
             # 마지막화 인덱스 구하기
             list_url = NAVER_WEBTOON["LIST_URL"] % item["titleId"]
             soup = BeautifulSoup(session.get(list_url).text, 'lxml')
@@ -202,6 +228,7 @@ if __name__ == "__main__":
             title_dir = (download_dir / item['title'])
             title_dir.mkdir(exist_ok=True)
 
+            # 한 화씩 다운로드
             while True:
                 if episode_index > last_index:  # 마지막화까지 받은 경우 다음 만화로 넘어가기
                     break
@@ -247,11 +274,12 @@ if __name__ == "__main__":
                 # config 파일 업데이트 (매 화 받을 때마다)
                 update_last_index(config, item, episode_index)
                 dump_config_file(config)
+
                 episode_index += 1
 
             # config 업데이트
             #update_last_index(config, item, last_index)
-            last_status = {"item": item, "lastIndex": last_index}
+            #last_status = {"item": item, "lastIndex": last_index}
 
             print("--- [%s] download completed ---" % item['title'])
 
@@ -267,7 +295,7 @@ if __name__ == "__main__":
         print(exc)
         with open('error.log', 'w+', encoding='UTF8') as f:
             f.write(str(exc))
-        update_last_index(config, last_status['item'], last_status['lastIndex'])
+        #update_last_index(config, last_status['item'], last_status['lastIndex'])
     finally:
         dump_config_file(config)
 
