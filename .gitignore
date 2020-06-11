@@ -64,3 +64,6 @@ venv/
 /.idea/misc.xml
 /.idea/webtoon-crawler.iml
 /.idea/workspace.xml
+.idea/
+downloads/
+error.log
