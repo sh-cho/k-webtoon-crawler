@@ -13,7 +13,7 @@ Python 3.8 버전으로 구현되었습니다.
     * [다음 웹툰]()
     * [Webtoons.com](https://www.webtoons.com/en/)
 
-![](header.png)
+![](header.jpg)
 
 ## 설치 방법
 
