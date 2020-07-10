@@ -1,5 +1,5 @@
 # K-webtoon-crawler
-<!-- CI area -->
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fsh-cho%2Fk-webtoon-crawler)](https://hits.seeyoufarm.com)
 
 무료로 볼 수 있는 웹툰을 로컬에 다운로드할 수 있는 프로그램입니다. 현재 버전은 네이버 웹툰의 완결웹툰 중
 스토어에 가지 않은 무료 웹툰을 자동으로 전부 다운로드합니다.
