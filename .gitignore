@@ -67,3 +67,4 @@ venv/
 downloads/
 accounts.json
 download_history.json
+__pycache__/
