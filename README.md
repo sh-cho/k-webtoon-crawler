@@ -20,7 +20,7 @@
    * Linux: ```$ apt-get install python3.8```
 1. 복사 (git clone 또는 zip 다운로드 후 압축해제)
    ```sh
-   $ git clone https://github.com/sh-cho/webtoon-crawler-python.git
+   $ git clone https://github.com/sh-cho/k-webtoon-crawler.git
    ```
 1. 모듈 설치
    ```sh
@@ -39,11 +39,13 @@
    # venv 없이 그냥 설치 (비추)
    $ pip install -r requirements.txt
    ```
-1. 환경 설정: naver.json에 네이버 아이디, 비밀번호 입력
+1. 환경 설정: ```account.json.tmpl```를 복사해 ```accounts.json``` 생성 후 사이트 별 아이디, 비밀번호 입력
    ```JSON
    {
-     "id": "입력입력",
-     "pw": "입력입력"
+     "naver": {
+       "id": "입력입력",
+       "pw": "입력입력"
+     }
    }
    ```
 1. 실행
@@ -55,11 +57,18 @@
    PS %userprofile%\Appdata\Local\Programs\Python\Python38\python.exe main.py
    또는
    PS C:\Users\{유저명}\Appdata\Local\Programs\Python\Python38\python.exe main.py
-    ```
+   ```
 
 
 ## 프로젝트 구조
-(작성예정)
+    .
+    └── main
+        └── WebtoonCrawler
+            ├── WebtoonScraper
+            │   ├── NaverWebtoonScraper
+            │   ├── (TODO) DaumWebtoonScraper
+            │   └── (TODO) WebtoonsDotcomScraper
+            └── ScraperUtil
 
 
 ## Dependencies
@@ -79,17 +88,14 @@ requirements.txt를 참고해주세요.
 
 
 ## 업데이트 내역
+* 2020-08-08
+    * 리팩토링중
 * 2020-07-09
-    * 업데이트중
     * 프로젝트 이름 변경 (```webtoon-crawler-python``` → ```k-webtoon-crawler```)
 * 2020-06-11
     * 리팩토링/문서화 시작
 * 2020-03-16
     * 프로토타입 완성
-
-
-## TODO
-* GUI 지원 (고민중)
 
 
 ## 정보
