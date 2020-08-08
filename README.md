@@ -17,7 +17,7 @@
 ## 설치 / 실행 방법
 1. Python 3.x 설치
    * Windows: [링크](https://www.python.org/)
-   * Linux: ```$ apt-get install python3.8```
+   * Linux: ```$ apt install python3.8```
 1. 복사 (git clone 또는 zip 다운로드 후 압축해제)
    ```sh
    $ git clone https://github.com/sh-cho/k-webtoon-crawler.git
