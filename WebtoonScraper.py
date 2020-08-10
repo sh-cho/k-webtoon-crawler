@@ -225,7 +225,6 @@ class NaverWebtoonScraper(WebtoonScraper):
                 if free // (2 ** 30) < 200:
                     print("--- remaining capacity is less than 200GB ---")
                     break
-                break   # test: just download single comic
         except Exception as exc:
             print('*** error has occurred ***')
             print(exc)
