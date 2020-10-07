@@ -87,17 +87,6 @@ requirements.txt를 참고해주세요.
 * Python 3.8.2
 
 
-## 업데이트 내역
-* 2020-08-08
-    * 리팩토링중
-* 2020-07-09
-    * 프로젝트 이름 변경 (```webtoon-crawler-python``` → ```k-webtoon-crawler```)
-* 2020-06-11
-    * 리팩토링/문서화 시작
-* 2020-03-16
-    * 프로토타입 완성
-
-
 ## 정보
 <https://github.com/sh-cho/k-webtoon-crawler>
 
@@ -114,4 +103,5 @@ requirements.txt를 참고해주세요.
 
 
 ## Note
-Issues and Pull Requests are always welcome.
+* Issues and Pull Requests are always welcome.
+* [gallery-dl](https://github.com/mikf/gallery-dl) 프로젝트에 머지하기 위해 준비중입니다.
