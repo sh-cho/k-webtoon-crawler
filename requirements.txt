@@ -3,7 +3,7 @@ certifi==2019.11.28
 chardet==3.0.4
 future==0.18.2
 idna==2.9
-lxml==4.5.0
+lxml==4.6.2
 lzstring==1.0.4
 Pillow>=7.1.0
 pyasn1==0.4.8
