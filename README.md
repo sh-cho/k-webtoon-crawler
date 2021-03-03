@@ -104,4 +104,4 @@ requirements.txt를 참고해주세요.
 
 ## Note
 * Issues and Pull Requests are always welcome.
-* [gallery-dl](https://github.com/mikf/gallery-dl) 프로젝트에 머지하기 위해 준비중입니다.
+* [gallery-dl](https://github.com/mikf/gallery-dl) 프로젝트에 머지되었습니다. (로그인은 아직 안 옮김)
