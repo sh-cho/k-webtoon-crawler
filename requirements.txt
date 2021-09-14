@@ -8,6 +8,6 @@ lzstring==1.0.4
 Pillow>=7.1.0
 pyasn1==0.4.8
 requests==2.23.0
-rsa==4.0
+rsa==4.7
 soupsieve==2.0
 urllib3==1.25.8
