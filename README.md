@@ -1,6 +1,14 @@
 # K-webtoon-crawler
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fsh-cho%2Fk-webtoon-crawler)](https://hits.seeyoufarm.com)
 
+## ⚠️ Disclaimer ⚠️
+This project has been merged into [mikf/gallery-dl](https://github.com/mikf/gallery-dl), which is image scraper for several image hosting sites.
+
+(For now, login on Naver Webtoon is unavailable on `gallery-dl`)
+
+If you are willing to contribute, please file an file on issue or PR on `gallery-dl`.
+
+## Introduction
 무료로 볼 수 있는 웹툰을 로컬에 다운로드할 수 있는 프로그램입니다. 현재 버전은 네이버 웹툰의 완결웹툰 중
 스토어에 가지 않은 무료 웹툰을 자동으로 전부 다운로드합니다.
 
@@ -100,8 +108,3 @@ requirements.txt를 참고해주세요.
 > 가정 및 이에 준하는 한정된 범위 안에서 이용하는 경우에는 그 이용자는 이를 복제할 수 있다. 다만,
 > 공중의 사용에 제공하기 위하여 설치된 복사기기, 스캐너, 사진기 등 문화체육관광부령으로 정하는
 > 복제기기에 의한 복제는 그러하지 아니하다. <개정 2020. 2. 4>
-
-
-## Note
-* Issues and Pull Requests are always welcome.
-* [gallery-dl](https://github.com/mikf/gallery-dl) 프로젝트에 머지되었습니다. (로그인은 아직 안 옮김)
